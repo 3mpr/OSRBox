@@ -16,9 +16,6 @@ class OSRBoxWrapper:
     '''
     def __init__( self, port, baudrate ):
 
-        if port is None:
-            raise ValueError( 'No COM port specified.' )
-
         self.port       = port
         self.baudrate   = baudrate
 
