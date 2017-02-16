@@ -53,7 +53,7 @@ class OSRBoxWrapper:
     '''
     def close( self ):
 
-        # Does'nt work !
+        # Does'nt work !?
         self.command( self.escape_sequence )
         self.ser.close()
 
@@ -105,22 +105,6 @@ class OSRBoxWrapper:
 
         return response
 
-    #def input( self ):
-
-    #    on = True
-
-    #    input_char = ''
-    #    last_input_char = ''
-
-    #    while on:
-
-    #        if ( self.ser.inWaiting ):
-
-    #            input_char = self.read()
-    #            if ( input_char != False ):
-
-    #                last_input_char = input_char
-    #                print input_char
 
     '''
     Outputs the current input flow, visual purposes.

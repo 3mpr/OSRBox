@@ -1,6 +1,8 @@
 OSRBox:
-  1: ESC
-  2: q
-  3: s
-  4: d
-  5: ENTER
+  port: 'COM3'
+  keys:
+    1: ESC
+    2: q
+    3: s
+    4: d
+    5: ENTER

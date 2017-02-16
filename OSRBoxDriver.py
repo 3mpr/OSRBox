@@ -67,21 +67,21 @@ class OSRBoxDriver:
 
     '''
     Keeps track of the current OSRBox pressed key and emulate keyboard keys
-    accordingly.
+    according to the <emulated_keys> dictionnary.
     '''
     def reader( self ):
 
         last_key_pressed = False
 
         while self.alive:
+
             key_pressed = self.pad.read()
 
-            if( key_pressed is not False ):
+            if key_pressed:
 
                 for key in self.emulated_keys:
                     if key_pressed == key and key_pressed != last_key_pressed:
                         last_key_pressed = key_pressed
-                        self.current_key = key_pressed
                         keyboard.press( self.emulated_keys[key] )
 
             elif last_key_pressed:
@@ -89,11 +89,9 @@ class OSRBoxDriver:
                 keyboard.release( self.emulated_keys[last_key_pressed] )
                 last_key_pressed = False
 
-            # time.sleep( 0.1 )
-
 
     '''
-    Runs two thread, one is a miniterm and let the user ends the program,
+    Runs two thread, one is a MINI(!)term and let the user ends the program,
     the other keeps updated the current active key.
     '''
     def run( self ):
@@ -108,6 +106,7 @@ class OSRBoxDriver:
         self._reader.join()
         self._term.join()
 
+
     '''
     Ends the process.
     '''
@@ -117,7 +116,7 @@ class OSRBoxDriver:
 
 
     '''
-    Exit hook.
+    Exit mini(!) terminal.
     '''
     def term( self ):
 
@@ -131,10 +130,11 @@ class OSRBoxDriver:
 
 if __name__=='__main__':
 
-    drv = OSRBoxDriver( 'COM3', True )
+    osr_conf = load_conf( 'OSRBox.yml' )
 
-    key_conf = load_conf( 'OSRBox.yml' )
-    for k in key_conf:
-        drv.bind( k, key_conf[k] )
+    drv = OSRBoxDriver( osr_conf['port'], True )
+
+    for k in osr_conf['keys']:
+        drv.bind( k, osr_conf['keys'][k] )
 
     drv.run()
