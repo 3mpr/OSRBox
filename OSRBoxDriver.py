@@ -5,6 +5,15 @@ import keyboard
 import threading
 import time
 
+import yaml
+
+def load_conf( fd = 'OSRBox.yml' ):
+
+    stream = open( fd, 'r' )
+    yaml_fd = yaml.load( stream )
+
+    return yaml_fd['OSRBox']
+
 class OSRBoxDriver:
 
     nb_keys = 5
@@ -15,7 +24,7 @@ class OSRBoxDriver:
     Initializes a few important variables, such as COM port, baudrate and
     emulated keys.
     '''
-    def __init__ ( self, port ):
+    def __init__ ( self, port, daemon = False ):
 
         self.pad = OSRBoxWrapper.OSRBoxWrapper( port, 19200 )
 
@@ -28,7 +37,9 @@ class OSRBoxDriver:
         }
 
         self._term = threading.Thread( target = self.term, name = 'term' )
+        self._term.daemon = daemon
         self._reader = threading.Thread( target = self.reader, name = 'rx' )
+        self._reader.daemon = daemon
 
 
     '''
@@ -120,5 +131,10 @@ class OSRBoxDriver:
 
 if __name__=='__main__':
 
-    drv = OSRBoxDriver('COM3')
+    drv = OSRBoxDriver( 'COM3', True )
+
+    key_conf = load_conf( 'OSRBox.yml' )
+    for k in key_conf:
+        drv.bind( k, key_conf[k] )
+
     drv.run()

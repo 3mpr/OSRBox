@@ -1,0 +1,4 @@
+# Project homepage https://github.com/3mpr/OSRBox
+
+PySerial
+keyboard
