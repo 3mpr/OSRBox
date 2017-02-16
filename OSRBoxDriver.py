@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 
 import OSRBoxWrapper
+import serial.tools.list_ports
 import keyboard
 import threading
 import time
-
+import os
 import yaml
 
 def load_conf( fd = 'OSRBox.yml' ):
@@ -24,9 +25,13 @@ class OSRBoxDriver:
     Initializes a few important variables, such as COM port, baudrate and
     emulated keys.
     '''
-    def __init__ ( self, port, daemon = False ):
+    def __init__( self, port = False, daemon = False ):
 
-        self.pad = OSRBoxWrapper.OSRBoxWrapper( port, 19200 )
+        if( port is False ):
+            self.delayed_setup  = True
+        else:
+            self.delayed_setup  = False
+            self.pad            = OSRBoxWrapper.OSRBoxWrapper( port, 19200 )
 
         self.emulated_keys = {
             1 : 'a',
@@ -36,9 +41,9 @@ class OSRBoxDriver:
             5 : 't'
         }
 
-        self._term = threading.Thread( target = self.term, name = 'term' )
-        self._term.daemon = daemon
-        self._reader = threading.Thread( target = self.reader, name = 'rx' )
+        self._term          = threading.Thread( target = self.term, name = 'term' )
+        self._term.daemon   = daemon
+        self._reader        = threading.Thread( target = self.reader, name = 'rx' )
         self._reader.daemon = daemon
 
 
@@ -71,6 +76,9 @@ class OSRBoxDriver:
     '''
     def reader( self ):
 
+        if self.delayed_setup:
+            raise UnboundLocalError( 'Local COM Port has not been initialized yet.' )
+
         last_key_pressed = False
 
         while self.alive:
@@ -96,6 +104,9 @@ class OSRBoxDriver:
     '''
     def run( self ):
 
+        if self.delayed_setup:
+            raise UnboundLocalError( 'Local COM Port has not been initialized yet.' )
+
         self.pad.open()
 
         self.alive = True
@@ -116,7 +127,7 @@ class OSRBoxDriver:
 
 
     '''
-    Exit mini(!) terminal.
+    Exit mini (one key!) terminal.
     '''
     def term( self ):
 
@@ -126,15 +137,40 @@ class OSRBoxDriver:
             if exit == 'Q':
                 self.alive = False
 
+    '''
+    Seeks the first available COM port and returns it.
+
+    @return string The port name
+    '''
+    @staticmethod
+    def seekPort():
+
+        print( '\nStarting port analysis...' )
+        available_com = None
+
+        while not available_com:
+
+            time.sleep( 1 )
+            available_com = serial.tools.list_ports.comports()
+
+        return available_com[0].device
 
 
-if __name__=='__main__':
+if __name__ == '__main__':
 
     osr_conf = load_conf( 'OSRBox.yml' )
 
-    drv = OSRBoxDriver( osr_conf['port'], True )
+    if( osr_conf['port'] ):
+
+        drv = OSRBoxDriver( osr_conf['port'], True )
+
+    else:
+
+        port = OSRBoxDriver.seekPort()
+        drv = OSRBoxDriver( port, True )
 
     for k in osr_conf['keys']:
+
         drv.bind( k, osr_conf['keys'][k] )
 
     drv.run()

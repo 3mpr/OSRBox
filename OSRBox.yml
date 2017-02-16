@@ -1,5 +1,5 @@
 OSRBox:
-  port: 'COM3'
+  port: #'COM3'
   keys:
     1: ESC
     2: q

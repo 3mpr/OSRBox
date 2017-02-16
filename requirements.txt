@@ -2,3 +2,4 @@
 
 PySerial
 keyboard
+py2exe
