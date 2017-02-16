@@ -1,5 +1,5 @@
 # OSRBox
-Small python script to interact with OSR SerialToUSB Box
+Small python script to interact with the OSRBox Virtual COM Port
 
 OSRBox homepage : http://www.ipsp.ucl.ac.be/recherche/projets/OSRBox/
 
@@ -11,6 +11,6 @@ OSRBox homepage : http://www.ipsp.ucl.ac.be/recherche/projets/OSRBox/
 5. Start OSRBoxDriver.py !
 
 If you don't know what is the used COM port, you can still list those with :
-```python
+```bash
 python -m serial.tools.list_ports
 ```
