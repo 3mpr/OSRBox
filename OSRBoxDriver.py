@@ -8,12 +8,7 @@ import time
 import os
 import yaml
 
-def load_conf( fd = 'OSRBox.yml' ):
 
-    stream = open( fd, 'r' )
-    yaml_fd = yaml.load( stream )
-
-    return yaml_fd['OSRBox']
 
 class OSRBoxDriver:
 
@@ -25,26 +20,24 @@ class OSRBoxDriver:
     Initializes a few important variables, such as COM port, baudrate and
     emulated keys.
     '''
-    def __init__( self, port = False, daemon = False ):
+    def __init__( self, port = False ):
 
-        if( port is False ):
-            self.delayed_setup  = True
-        else:
+        self.port = None
+        self.emulated_keys = { 1 : 'a', 2 : 'z', 3 : 'e', 4 : 'r', 5 : 't' }
+
+        self.osr_conf = self.load_conf( 'OSRBox.yml' )
+        self.delayed_setup = True
+
+        if port:
+
             self.delayed_setup  = False
-            self.pad            = OSRBoxWrapper.OSRBoxWrapper( port, 19200 )
+            self.port           = port
 
-        self.emulated_keys = {
-            1 : 'a',
-            2 : 'z',
-            3 : 'e',
-            4 : 'r',
-            5 : 't'
-        }
+        elif port is False and self.osr_conf['port']:
 
-        self._term          = threading.Thread( target = self.term, name = 'term' )
-        self._term.daemon   = daemon
-        self._reader        = threading.Thread( target = self.reader, name = 'rx' )
-        self._reader.daemon = daemon
+            self.port           = self.osr_conf['port']
+
+        #self.pad            = OSRBoxWrapper.OSRBoxWrapper( port, 19200 )
 
 
     '''
@@ -52,8 +45,10 @@ class OSRBoxDriver:
     '''
     def __del__( self ):
 
+        self.reader_alive   = False
+        self.alive          = False
+
         self.pad.close()
-        self.alive = False
 
 
     '''
@@ -76,12 +71,9 @@ class OSRBoxDriver:
     '''
     def reader( self ):
 
-        if self.delayed_setup:
-            raise UnboundLocalError( 'Local COM Port has not been initialized yet.' )
-
         last_key_pressed = False
 
-        while self.alive:
+        while self.reader_alive:
 
             key_pressed = self.pad.read()
 
@@ -102,28 +94,60 @@ class OSRBoxDriver:
     Runs two thread, one is a MINI(!)term and let the user ends the program,
     the other keeps updated the current active key.
     '''
-    def run( self ):
+    def bootstrap( self ):
 
         if self.delayed_setup:
-            raise UnboundLocalError( 'Local COM Port has not been initialized yet.' )
+
+            self.conf = self.load_conf()
+
+            if not self.port:
+
+                self.port = OSRBoxDriver.seek_port()
+
+        self.pad = OSRBoxWrapper.OSRBoxWrapper( self.port, 19200 )
+
+        self.osr_conf = self.load_conf( 'OSRBox.yml' )
+        for k in self.osr_conf['keys']:
+
+            self.bind( k, self.osr_conf['keys'][k] )
 
         self.pad.open()
 
-        self.alive = True
-
+        self.reader_alive = True
+        self._reader    = threading.Thread( target = self.reader, name = 'rx' )
         self._reader.start()
+        self._reader.join()
+
+        self._term      = threading.Thread( target = self.term, name = 'term' )
         self._term.start()
 
-        self._reader.join()
-        self._term.join()
+
+    '''
+    '''
+    def run( self ):
+
+        self.alive = True
+        self.reader_alive = True
+
+        while self.alive:
+
+            try:
+
+                self.bootstrap()
+
+            except serial.serialutil.SerialException, TypeError:
+
+                self.reader_alive = False
+                self.port = None
+                time.sleep( 1 )
 
 
     '''
     Ends the process.
     '''
     def stop( self ):
-
-        self.alive = False
+        self.reader_alive   = False
+        self.alive          = False
 
 
     '''
@@ -131,11 +155,25 @@ class OSRBoxDriver:
     '''
     def term( self ):
 
-        while self.alive:
+        while self.reader_alive:
+
             exit = raw_input( 'Press Q to stop the OSRBox...' )
 
             if exit == 'Q':
+
+                self.reader_alive = False
                 self.alive = False
+
+
+    '''
+    '''
+    def load_conf( self, fd = 'OSRBox.yml' ):
+
+        stream = open( fd, 'r' )
+        yaml_fd = yaml.load( stream )
+        stream.close()
+
+        return yaml_fd['OSRBox']
 
     '''
     Seeks the first available COM port and returns it.
@@ -143,7 +181,7 @@ class OSRBoxDriver:
     @return string The port name
     '''
     @staticmethod
-    def seekPort():
+    def seek_port():
 
         print( '\nStarting port analysis...' )
         available_com = None
@@ -158,19 +196,5 @@ class OSRBoxDriver:
 
 if __name__ == '__main__':
 
-    osr_conf = load_conf( 'OSRBox.yml' )
-
-    if( osr_conf['port'] ):
-
-        drv = OSRBoxDriver( osr_conf['port'], True )
-
-    else:
-
-        port = OSRBoxDriver.seekPort()
-        drv = OSRBoxDriver( port, True )
-
-    for k in osr_conf['keys']:
-
-        drv.bind( k, osr_conf['keys'][k] )
-
+    drv = OSRBoxDriver()
     drv.run()

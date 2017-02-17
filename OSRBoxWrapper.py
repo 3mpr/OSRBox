@@ -90,9 +90,11 @@ class OSRBoxWrapper:
     def read( self ):
 
         response = self.ser.read( 1 )
+        if not response:
+            response = '0'
         response = ord( response )
 
-        if response == 0:
+        if not response:
             return False
 
         response = math.log( response, 2 )
